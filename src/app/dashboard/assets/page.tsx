@@ -10,14 +10,12 @@ export default function AssetsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const load = async () => {
+    const run = async () => {
       const supabase = getSupabase()
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: userData } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (!userData.user) {
         router.push("/auth/login")
         return
       }
@@ -25,31 +23,31 @@ export default function AssetsPage() {
       const { data, error } = await supabase
         .from("legacy_assets")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userData.user.id)
         .order("created_at", { ascending: false })
 
-      if (!error && data) {
-        const parsed = data.map((item) => {
-          let decrypted = null
+      if (error) return
 
-          try {
-            decrypted = decryptText(item.payload)
-          } catch {
-            decrypted = { error: "decrypt_failed" }
-          }
+      const result = (data || []).map((item) => {
+        let decrypted = {}
 
-          return {
-            id: item.id,
-            created_at: item.created_at,
-            ...decrypted,
-          }
-        })
+        try {
+          decrypted = decryptText(item.payload)
+        } catch {
+          decrypted = { error: "decrypt_failed" }
+        }
 
-        setAssets(parsed)
-      }
+        return {
+          id: item.id,
+          created_at: item.created_at,
+          ...decrypted,
+        }
+      })
+
+      setAssets(result)
     }
 
-    load()
+    run()
   }, [])
 
   return (
@@ -59,13 +57,11 @@ export default function AssetsPage() {
       {assets.length === 0 ? (
         <p>No data</p>
       ) : (
-        <ul>
-          {assets.map((a) => (
-            <li key={a.id}>
-              {a.title || "Untitled"} - {a.created_at}
-            </li>
-          ))}
-        </ul>
+        assets.map((a) => (
+          <div key={a.id}>
+            <p>{a.title || "Untitled"}</p>
+          </div>
+        ))
       )}
     </div>
   )

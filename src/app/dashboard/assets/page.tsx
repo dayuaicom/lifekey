@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabase } from "@/lib/supabase"
-import { decryptText } from "@/server/security/crypto"
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<any[]>([])
@@ -28,23 +27,7 @@ export default function AssetsPage() {
 
       if (error) return
 
-      const result = (data || []).map((item) => {
-        let decrypted = {}
-
-        try {
-          decrypted = decryptText(item.payload)
-        } catch {
-          decrypted = { error: "decrypt_failed" }
-        }
-
-        return {
-          id: item.id,
-          created_at: item.created_at,
-          ...decrypted,
-        }
-      })
-
-      setAssets(result)
+      setAssets(data || [])
     }
 
     run()
@@ -57,9 +40,10 @@ export default function AssetsPage() {
       {assets.length === 0 ? (
         <p>No data</p>
       ) : (
-        assets.map((a) => (
-          <div key={a.id}>
-            <p>{a.title || "Untitled"}</p>
+        assets.map((item) => (
+          <div key={item.id} style={{ marginBottom: 10 }}>
+            <h3>{item.title}</h3>
+            <pre>{item.encrypted_data}</pre>
           </div>
         ))
       )}

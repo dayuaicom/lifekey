@@ -1,90 +1,57 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { supabaseClient } from "@/server/supabase/client";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { getSupabase } from "@/lib/supabase"
 
 export default function LoginPage() {
-  const router = useRouter();
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  // 监听登录状态
   useEffect(() => {
-    async function checkSession() {
-      const { data } =
-        await supabaseClient.auth.getSession();
+    const supabase = getSupabase()
 
-      // 已登录
+    supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace("/dashboard/dashboard");
+        router.push("/dashboard")
       }
-    }
+    })
+  }, [])
 
-    checkSession();
+  const login = async () => {
+    setLoading(true)
 
-    const {
-      data: { subscription },
-    } = supabaseClient.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) {
-          router.replace("/dashboard/dashboard");
-        }
-      }
-    );
+    try {
+      const supabase = getSupabase()
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router]);
-
-  async function login() {
-    if (!email) {
-      alert("请输入邮箱");
-      return;
-    }
-
-    setLoading(true);
-
-    const { error } =
-      await supabaseClient.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-      });
+      })
 
-    setLoading(false);
-
-    if (error) {
-      alert(error.message);
-      return;
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Check your email")
+      }
+    } finally {
+      setLoading(false)
     }
-
-    alert("登录邮件已发送");
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>LifeKey 登录</h2>
+    <div style={{ padding: 20 }}>
+      <h1>Login</h1>
 
       <input
-        type="email"
-        placeholder="请输入邮箱"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{
-          width: 300,
-          padding: 10,
-          marginBottom: 10,
-          display: "block",
-        }}
+        placeholder="email"
       />
 
-      <button
-        onClick={login}
-        disabled={loading}
-      >
-        {loading ? "发送中..." : "发送登录链接"}
+      <button onClick={login} disabled={loading}>
+        {loading ? "Sending..." : "Login"}
       </button>
     </div>
-  );
+  )
 }
